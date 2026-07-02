@@ -61,43 +61,35 @@ jobs:
           node-version: '20'
 
       # musl builds need Alpine container
-      - name: Build in Alpine container (musl)
+      - name: Build in Alpine container (musl) N-API v3
         if: matrix.libc == 'musl'
         run: |
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
-            -e NAPI_VERSION=3 \
             alpine:3.19 \
             sh -c "
               apk add --no-cache python3 make g++ git nodejs npm linux-headers tar
-              npm ci --ignore-scripts
-              npx node-pre-gyp configure build --target_arch=${{ matrix.arch }}
-              npx node-pre-gyp package --target_arch=${{ matrix.arch }}
+              npm install --ignore-scripts
+              npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }} --napi_build_version=3
+              npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=3
+              npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }} --napi_build_version=6
+              npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=6
             "
 
-      - name: Install & Build (non-musl)
+      - name: Install dependencies (non-musl)
+        if: matrix.libc != 'musl'
+        run: npm install --ignore-scripts
+
+      - name: Build N-API v3 (non-musl)
         if: matrix.libc != 'musl'
         run: |
-          npm ci --ignore-scripts
-          npx node-pre-gyp configure build
-          npx node-pre-gyp package
+          npx @mapbox/node-pre-gyp configure build --napi_build_version=3
+          npx @mapbox/node-pre-gyp package --napi_build_version=3
 
       - name: Build N-API v6 (non-musl)
         if: matrix.libc != 'musl'
         run: |
-          npx node-pre-gyp configure build --napi_build_version=6
-          npx node-pre-gyp package --napi_build_version=6
-
-      - name: Build N-API v6 (musl)
-        if: matrix.libc == 'musl'
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
-            alpine:3.19 \
-            sh -c "
-              apk add --no-cache python3 make g++ git nodejs npm linux-headers tar
-              npm ci --ignore-scripts
-              npx node-pre-gyp configure build --napi_build_version=6 --target_arch=${{ matrix.arch }}
-              npx node-pre-gyp package --napi_build_version=6 --target_arch=${{ matrix.arch }}
-            "
+          npx @mapbox/node-pre-gyp configure build --napi_build_version=6
+          npx @mapbox/node-pre-gyp package --napi_build_version=6
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
