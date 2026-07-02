@@ -20,12 +20,8 @@ jobs:
             platform: win32
             arch: x64
             libc: unknown
-          - os: windows-2022
-            platform: win32
-            arch: ia32
-            libc: unknown
-          # macOS
-          - os: macos-13
+          # macOS (macos-14 is ARM64, cross-compile x64 via Rosetta)
+          - os: macos-14
             platform: darwin
             arch: x64
             libc: unknown
@@ -42,15 +38,6 @@ jobs:
             platform: linux
             arch: arm64
             libc: glibc
-          # Linux musl (Alpine)
-          - os: ubuntu-22.04
-            platform: linux
-            arch: x64
-            libc: musl
-          - os: ubuntu-22.04-arm
-            platform: linux
-            arch: arm64
-            libc: musl
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -60,33 +47,13 @@ jobs:
         with:
           node-version: '20'
 
-      # musl builds need Alpine container
-      - name: Build in Alpine container (musl)
-        if: matrix.libc == 'musl'
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
-            alpine:3.19 \
-            sh -c "
-              apk add --no-cache python3 make g++ git nodejs npm linux-headers
-              npm install --ignore-scripts
-              for napi in 3 6; do
-                binding_dir=lib/binding/napi-v\${napi}-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}
-                npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }} --napi_build_version=\${napi}
-                mkdir -p \${binding_dir}
-                cp build/Release/eva_sqlite3.node \${binding_dir}/
-                npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=\${napi}
-              done
-            "
-
-      - name: Install dependencies (non-musl)
-        if: matrix.libc != 'musl'
+      - name: Install dependencies
         run: npm install --ignore-scripts
 
-      - name: Build & Package (non-musl)
-        if: matrix.libc != 'musl'
+      - name: Build & Package
         shell: bash
         run: |
-          npx @mapbox/node-pre-gyp configure build
+          npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }}
 
           # Copy both N-API versions to module_path first
           for napi in 3 6; do
