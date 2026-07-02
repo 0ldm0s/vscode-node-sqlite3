@@ -87,16 +87,21 @@ jobs:
         shell: bash
         run: |
           for napi in 3 6; do
-            binding_dir="lib/binding/napi-v${napi}-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}"
+            export NAPI_VERSION=${napi}
             npx @mapbox/node-pre-gyp configure build --napi_build_version=${napi}
             node -e "
               const fs = require('fs');
               const path = require('path');
-              const src = path.join('${{ github.workspace }}', 'build', 'Release', 'eva_sqlite3.node');
-              const destDir = path.join('${{ github.workspace }}', '${binding_dir}');
+              const cwd = process.cwd();
+              const napi = process.env.NAPI_VERSION;
+              const platform = '${{ matrix.platform }}';
+              const libc = '${{ matrix.libc }}';
+              const arch = '${{ matrix.arch }}';
+              const src = path.join(cwd, 'build', 'Release', 'eva_sqlite3.node');
+              const destDir = path.join(cwd, 'lib', 'binding', 'napi-v' + napi + '-' + platform + '-' + libc + '-' + arch);
               fs.mkdirSync(destDir, { recursive: true });
               fs.copyFileSync(src, path.join(destDir, 'eva_sqlite3.node'));
-              console.log('Copied', src, '->', path.join(destDir, 'eva_sqlite3.node'));
+              console.log('Copied to', path.join(destDir, 'eva_sqlite3.node'));
             "
             npx @mapbox/node-pre-gyp package --napi_build_version=${napi}
           done
