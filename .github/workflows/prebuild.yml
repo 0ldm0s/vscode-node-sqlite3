@@ -67,29 +67,32 @@ jobs:
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
             alpine:3.19 \
             sh -c "
-              apk add --no-cache python3 make g++ git nodejs npm linux-headers tar
+              apk add --no-cache python3 make g++ git nodejs npm linux-headers
               npm install --ignore-scripts
-              npx @mapbox/node-pre-gyp install --build-from-source --target_arch=${{ matrix.arch }} --napi_build_version=3
-              npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=3
-              npx @mapbox/node-pre-gyp install --build-from-source --target_arch=${{ matrix.arch }} --napi_build_version=6
-              npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=6
+              for napi in 3 6; do
+                binding_dir=lib/binding/napi-v\${napi}-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}
+                npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }} --napi_build_version=\${napi}
+                mkdir -p \${binding_dir}
+                cp build/Release/eva_sqlite3.node \${binding_dir}/
+                npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=\${napi}
+              done
             "
 
       - name: Install dependencies (non-musl)
         if: matrix.libc != 'musl'
         run: npm install --ignore-scripts
 
-      - name: Build N-API v3 (non-musl)
+      - name: Build & Package (non-musl)
         if: matrix.libc != 'musl'
+        shell: bash
         run: |
-          npx @mapbox/node-pre-gyp install --build-from-source --napi_build_version=3
-          npx @mapbox/node-pre-gyp package --napi_build_version=3
-
-      - name: Build N-API v6 (non-musl)
-        if: matrix.libc != 'musl'
-        run: |
-          npx @mapbox/node-pre-gyp install --build-from-source --napi_build_version=6
-          npx @mapbox/node-pre-gyp package --napi_build_version=6
+          for napi in 3 6; do
+            binding_dir="lib/binding/napi-v${napi}-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}"
+            npx @mapbox/node-pre-gyp configure build --napi_build_version=${napi}
+            mkdir -p ${binding_dir}
+            cp build/Release/eva_sqlite3.node ${binding_dir}/
+            npx @mapbox/node-pre-gyp package --napi_build_version=${napi}
+          done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
