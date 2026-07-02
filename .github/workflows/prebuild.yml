@@ -54,14 +54,14 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
 
       # musl builds need Alpine container
-      - name: Build in Alpine container (musl) N-API v3
+      - name: Build in Alpine container (musl)
         if: matrix.libc == 'musl'
         run: |
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
@@ -69,9 +69,9 @@ jobs:
             sh -c "
               apk add --no-cache python3 make g++ git nodejs npm linux-headers tar
               npm install --ignore-scripts
-              npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }} --napi_build_version=3
+              npx @mapbox/node-pre-gyp install --build-from-source --target_arch=${{ matrix.arch }} --napi_build_version=3
               npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=3
-              npx @mapbox/node-pre-gyp configure build --target_arch=${{ matrix.arch }} --napi_build_version=6
+              npx @mapbox/node-pre-gyp install --build-from-source --target_arch=${{ matrix.arch }} --napi_build_version=6
               npx @mapbox/node-pre-gyp package --target_arch=${{ matrix.arch }} --napi_build_version=6
             "
 
@@ -82,17 +82,17 @@ jobs:
       - name: Build N-API v3 (non-musl)
         if: matrix.libc != 'musl'
         run: |
-          npx @mapbox/node-pre-gyp configure build --napi_build_version=3
+          npx @mapbox/node-pre-gyp install --build-from-source --napi_build_version=3
           npx @mapbox/node-pre-gyp package --napi_build_version=3
 
       - name: Build N-API v6 (non-musl)
         if: matrix.libc != 'musl'
         run: |
-          npx @mapbox/node-pre-gyp configure build --napi_build_version=6
+          npx @mapbox/node-pre-gyp install --build-from-source --napi_build_version=6
           npx @mapbox/node-pre-gyp package --napi_build_version=6
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: prebuilt-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}
           path: build/stage/*.tar.gz
@@ -101,7 +101,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: artifacts
           merge-multiple: true
