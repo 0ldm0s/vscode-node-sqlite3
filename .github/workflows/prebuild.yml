@@ -86,53 +86,20 @@ jobs:
         if: matrix.libc != 'musl'
         shell: bash
         run: |
+          npx @mapbox/node-pre-gyp configure build
           for napi in 3 6; do
-            export NAPI_VERSION=${napi}
-            npx @mapbox/node-pre-gyp configure build --napi_build_version=${napi}
-            echo "=== Searching for .node files ==="
-            node -e "
-              const fs = require('fs');
-              const path = require('path');
-              function walk(dir) {
-                let results = [];
-                for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-                  const full = path.join(dir, entry.name);
-                  if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-                    results = results.concat(walk(full));
-                  } else if (entry.name.endsWith('.node')) {
-                    results.push(full);
-                  }
-                }
-                return results;
-              }
-              const files = walk('.');
-              console.log('Found .node files:', JSON.stringify(files, null, 2));
-            "
             node -e "
               const fs = require('fs');
               const path = require('path');
               const cwd = process.cwd();
-              const napi = process.env.NAPI_VERSION;
               const platform = '${{ matrix.platform }}';
               const libc = '${{ matrix.libc }}';
               const arch = '${{ matrix.arch }}';
-              const destDir = path.join(cwd, 'lib', 'binding', 'napi-v' + napi + '-' + platform + '-' + libc + '-' + arch);
+              const src = path.join(cwd, 'build-tmp-napi-v${napi}', 'Release', 'eva_sqlite3.node');
+              const destDir = path.join(cwd, 'lib', 'binding', 'napi-v${napi}-' + platform + '-' + libc + '-' + arch);
               fs.mkdirSync(destDir, { recursive: true });
-              // Try multiple possible locations
-              const candidates = [
-                path.join(cwd, 'build', 'Release', 'eva_sqlite3.node'),
-                path.join(cwd, 'lib', 'binding', 'napi-v' + napi + '-' + platform + '-' + libc + '-' + arch, 'eva_sqlite3.node'),
-              ];
-              let copied = false;
-              for (const src of candidates) {
-                if (fs.existsSync(src)) {
-                  fs.copyFileSync(src, path.join(destDir, 'eva_sqlite3.node'));
-                  console.log('Copied', src, 'to', path.join(destDir, 'eva_sqlite3.node'));
-                  copied = true;
-                  break;
-                }
-              }
-              if (!copied) throw new Error('eva_sqlite3.node not found in any candidate location');
+              fs.copyFileSync(src, path.join(destDir, 'eva_sqlite3.node'));
+              console.log('Copied', src, '->', path.join(destDir, 'eva_sqlite3.node'));
             "
             npx @mapbox/node-pre-gyp package --napi_build_version=${napi}
           done
