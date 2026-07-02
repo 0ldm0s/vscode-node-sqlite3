@@ -1,16 +1,16 @@
 {
-  "name": "@vscode/sqlite3",
-  "description": "Asynchronous, non-blocking SQLite3 bindings",
-  "version": "5.1.14-vscode",
-  "homepage": "https://github.com/microsoft/vscode-node-sqlite3",
+  "name": "@eva/sqlite3",
+  "description": "Asynchronous, non-blocking SQLite3 bindings (forked from @vscode/sqlite3)",
+  "version": "5.1.14",
+  "homepage": "https://github.com/0ldm0s/vscode-node-sqlite3",
   "author": {
     "name": "Mapbox",
     "url": "https://mapbox.com/"
   },
   "binary": {
-    "module_name": "node_sqlite3",
+    "module_name": "eva_sqlite3",
     "module_path": "./lib/binding/napi-v{napi_build_version}-{platform}-{libc}-{arch}",
-    "host": "https://github.com/TryGhost/node-sqlite3/releases/download/",
+    "host": "https://github.com/0ldm0s/vscode-node-sqlite3/releases/download/",
     "remote_path": "v{version}",
     "package_name": "napi-v{napi_build_version}-{platform}-{libc}-{arch}.tar.gz",
     "napi_versions": [
@@ -45,9 +45,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/vscode-node-sqlite3.git"
+    "url": "https://github.com/0ldm0s/vscode-node-sqlite3.git"
   },
   "dependencies": {
+    "@mapbox/node-pre-gyp": "^2.0.0",
     "node-addon-api": "^8.2.0",
     "tar": "^7.5.4"
   },
@@ -63,6 +64,7 @@
     "serialize-javascript": "^7.0.5"
   },
   "scripts": {
+    "install": "node-pre-gyp install --fallback-to-build",
     "pretest": "node test/support/createdb.js",
     "test": "mocha -R spec --timeout 480000",
     "pack": "node-pre-gyp package"

@@ -1,0 +1,121 @@
+name: Build Prebuilt Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows
+          - os: windows-2022
+            platform: win32
+            arch: x64
+            libc: unknown
+          - os: windows-2022
+            platform: win32
+            arch: ia32
+            libc: unknown
+          # macOS
+          - os: macos-13
+            platform: darwin
+            arch: x64
+            libc: unknown
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+            libc: unknown
+          # Linux glibc
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x64
+            libc: glibc
+          - os: ubuntu-22.04-arm
+            platform: linux
+            arch: arm64
+            libc: glibc
+          # Linux musl (Alpine)
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x64
+            libc: musl
+          - os: ubuntu-22.04-arm
+            platform: linux
+            arch: arm64
+            libc: musl
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # musl builds need Alpine container
+      - name: Build in Alpine container (musl)
+        if: matrix.libc == 'musl'
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
+            -e NAPI_VERSION=3 \
+            alpine:3.19 \
+            sh -c "
+              apk add --no-cache python3 make g++ git nodejs npm linux-headers tar
+              npm ci --ignore-scripts
+              npx node-pre-gyp configure build --target_arch=${{ matrix.arch }}
+              npx node-pre-gyp package --target_arch=${{ matrix.arch }}
+            "
+
+      - name: Install & Build (non-musl)
+        if: matrix.libc != 'musl'
+        run: |
+          npm ci --ignore-scripts
+          npx node-pre-gyp configure build
+          npx node-pre-gyp package
+
+      - name: Build N-API v6 (non-musl)
+        if: matrix.libc != 'musl'
+        run: |
+          npx node-pre-gyp configure build --napi_build_version=6
+          npx node-pre-gyp package --napi_build_version=6
+
+      - name: Build N-API v6 (musl)
+        if: matrix.libc == 'musl'
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
+            alpine:3.19 \
+            sh -c "
+              apk add --no-cache python3 make g++ git nodejs npm linux-headers tar
+              npm ci --ignore-scripts
+              npx node-pre-gyp configure build --napi_build_version=6 --target_arch=${{ matrix.arch }}
+              npx node-pre-gyp package --napi_build_version=6 --target_arch=${{ matrix.arch }}
+            "
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilt-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}
+          path: build/stage/*.tar.gz
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release and Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.tar.gz
+          generate_release_notes: true

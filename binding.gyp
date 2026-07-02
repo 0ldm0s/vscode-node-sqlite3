@@ -6,7 +6,7 @@
   },
   "targets": [
     {
-      "target_name": "vscode-sqlite3",
+      "target_name": "eva_sqlite3",
       "xcode_settings": {
         "CLANG_CXX_LIBRARY": "libc++",
         # Target depends on
@@ -21,7 +21,6 @@
         "-O2"
       ],
       "msvs_configuration_attributes": {
-        "SpectreMitigation": "Spectre"
       },
       "msvs_settings": {
         "VCCLCompilerTool": {
