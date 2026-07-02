@@ -89,8 +89,10 @@ jobs:
           for napi in 3 6; do
             binding_dir="lib/binding/napi-v${napi}-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}"
             npx @mapbox/node-pre-gyp configure build --napi_build_version=${napi}
+            node_file=$(find build -name "eva_sqlite3.node" -type f | head -1)
+            echo "Found .node at: ${node_file}"
             mkdir -p ${binding_dir}
-            cp build/Release/eva_sqlite3.node ${binding_dir}/
+            cp "${node_file}" ${binding_dir}/eva_sqlite3.node
             npx @mapbox/node-pre-gyp package --napi_build_version=${napi}
           done
 
