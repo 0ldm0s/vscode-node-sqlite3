@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: prebuilt-${{ matrix.platform }}-${{ matrix.libc }}-${{ matrix.arch }}
-          path: build/stage/*.tar.gz
+          path: build/stage/**/*.tar.gz
 
   publish:
     needs: build
