@@ -74,7 +74,7 @@ jobs:
 
           # Package each version
           for napi in 3 6; do
-            npx @mapbox/node-pre-gyp package --napi_build_version=${napi}
+            npx @mapbox/node-pre-gyp package --napi_build_version=${napi} --target_arch=${{ matrix.arch }}
           done
 
       - name: Upload artifacts
