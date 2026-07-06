@@ -48,23 +48,23 @@
     "url": "https://github.com/0ldm0s/vscode-node-sqlite3.git"
   },
   "dependencies": {
-    "@mapbox/node-pre-gyp": "^2.0.0",
-    "node-addon-api": "^8.2.0",
-    "tar": "^7.5.4"
+    "node-addon-api": "^8.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@mapbox/node-pre-gyp": "^2.0.0",
     "electron": "39.8.5",
     "eslint": "^10.5.0",
     "globals": "^17.6.0",
-    "mocha": "^11.7.5"
+    "mocha": "^11.7.5",
+    "tar": "^7.5.4"
   },
   "overrides": {
     "diff": "^8.0.3",
     "serialize-javascript": "^7.0.5"
   },
   "scripts": {
-    "install": "node-pre-gyp install --fallback-to-build",
+    "install": "node install.js",
     "pretest": "node test/support/createdb.js",
     "test": "mocha -R spec --timeout 480000",
     "pack": "node-pre-gyp package"
