@@ -39,6 +39,7 @@
   "files": [
     "binding.gyp",
     "deps/",
+    "install.js",
     "lib/*.js",
     "lib/*.d.ts",
     "src/"
