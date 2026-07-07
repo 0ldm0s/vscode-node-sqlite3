@@ -136,9 +136,9 @@ async function main() {
     await download(downloadUrl, tarPath);
     console.log(`[eva-sqlite3] 下载完成: ${tarPath}`);
 
-    // 解压
-    fs.mkdirSync(bindingDir, { recursive: true });
-    extractTarGz(tarPath, bindingDir);
+    // 解压（tar.gz 内部包含目录结构，需要解压到上级目录）
+    fs.mkdirSync(path.dirname(bindingDir), { recursive: true });
+    extractTarGz(tarPath, path.dirname(bindingDir));
     console.log(`[eva-sqlite3] 解压完成: ${bindingDir}`);
 
     // 清理临时文件
