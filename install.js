@@ -86,32 +86,36 @@ function download(url, dest) {
   });
 }
 
-// 解压 tar.gz
-function extractTarGz(tarPath, destDir) {
-  try {
-    execSync(`tar -xzf "${tarPath}" -C "${destDir}"`, { stdio: 'inherit' });
-  } catch (err) {
-    // Windows 上可能没有 tar，尝试使用 PowerShell
-    if (process.platform === 'win32') {
-      execSync(`powershell -Command "Expand-Archive -Path '${tarPath}' -DestinationPath '${destDir}' -Force"`, { stdio: 'inherit' });
-    } else {
-      throw err;
-    }
-  }
+// 解压（Windows 仅在 tar.gz 时需要，.node 文件直接下载不压缩）
+function extract(archivePath, destDir) {
+  execSync(`tar -xzf "${archivePath}" -C "${destDir}"`, { stdio: 'inherit' });
 }
 
 async function main() {
   const { platform, arch, libc, napiVersion, modulePath } = getPlatform();
 
   // 构建下载 URL
-  const fileName = binary.package_name
-    .replace('{napi_build_version}', napiVersion)
-    .replace('{platform}', platform)
-    .replace('{libc}', libc)
-    .replace('{arch}', arch);
-
+  // Windows: 直接下载 .node 文件（避免 Expand-Archive 兼容性问题）
+  // 其他平台: 下载 tar.gz
+  const isWindows = process.platform === 'win32';
   const remotePath = binary.remote_path.replace('{version}', pkg.version);
-  const downloadUrl = `${binary.host}${remotePath}/${fileName}`;
+
+  let downloadUrl;
+  let fileName;
+
+  if (isWindows) {
+    // Windows 直接下载 .node 文件，不压缩
+    fileName = `${binary.module_name}.node`;
+    downloadUrl = `${binary.host}${remotePath}/${fileName}`;
+  } else {
+    // 其他平台下载 tar.gz
+    fileName = binary.package_name
+      .replace('{napi_build_version}', napiVersion)
+      .replace('{platform}', platform)
+      .replace('{libc}', libc)
+      .replace('{arch}', arch);
+    downloadUrl = `${binary.host}${remotePath}/${fileName}`;
+  }
 
   // 目标路径
   const bindingDir = path.resolve(__dirname, modulePath);
@@ -129,20 +133,26 @@ async function main() {
   const tmpDir = path.join(__dirname, '.tmp');
   fs.mkdirSync(tmpDir, { recursive: true });
 
-  const tarPath = path.join(tmpDir, fileName);
+  const archivePath = path.join(tmpDir, fileName);
 
   try {
     // 下载
-    await download(downloadUrl, tarPath);
-    console.log(`[eva-sqlite3] 下载完成: ${tarPath}`);
+    await download(downloadUrl, archivePath);
+    console.log(`[eva-sqlite3] 下载完成: ${archivePath}`);
 
-    // 解压（tar.gz 内部包含目录结构，需要解压到上级目录）
-    fs.mkdirSync(path.dirname(bindingDir), { recursive: true });
-    extractTarGz(tarPath, path.dirname(bindingDir));
-    console.log(`[eva-sqlite3] 解压完成: ${bindingDir}`);
+    // Windows: 直接下载 .node 文件，移动到目标位置
+    // 其他平台: 解压 tar.gz
+    fs.mkdirSync(bindingDir, { recursive: true });
+    if (isWindows) {
+      fs.copyFileSync(archivePath, bindingFile);
+      console.log(`[eva-sqlite3] 安装完成: ${bindingFile}`);
+    } else {
+      extract(archivePath, bindingDir);
+      console.log(`[eva-sqlite3] 解压完成: ${bindingDir}`);
+    }
 
     // 清理临时文件
-    fs.unlinkSync(tarPath);
+    fs.unlinkSync(archivePath);
 
     console.log(`[eva-sqlite3] 安装成功: ${bindingFile}`);
   } catch (err) {
