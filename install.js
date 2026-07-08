@@ -147,8 +147,19 @@ async function main() {
       fs.copyFileSync(archivePath, bindingFile);
       console.log(`[eva-sqlite3] 安装完成: ${bindingFile}`);
     } else {
-      extract(archivePath, bindingDir);
-      console.log(`[eva-sqlite3] 解压完成: ${bindingDir}`);
+      // tar.gz 内部结构: napi-v{napi}-{platform}-{libc}-{arch}/eva_sqlite3.node
+      // 解压到临时目录，然后移动 .node 文件到目标位置
+      const tmpExtractDir = path.join(tmpDir, 'extract');
+      fs.mkdirSync(tmpExtractDir, { recursive: true });
+      extract(archivePath, tmpExtractDir);
+      // 找到解压后的 .node 文件
+      const extractedNodeFile = path.join(tmpExtractDir, fileName.replace('.tar.gz', ''), `${binary.module_name}.node`);
+      if (fs.existsSync(extractedNodeFile)) {
+        fs.copyFileSync(extractedNodeFile, bindingFile);
+        console.log(`[eva-sqlite3] 安装完成: ${bindingFile}`);
+      } else {
+        throw new Error(`解压后未找到 .node 文件: ${extractedNodeFile}`);
+      }
     }
 
     // 清理临时文件
