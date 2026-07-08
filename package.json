@@ -1,7 +1,7 @@
 {
   "name": "@eva/sqlite3",
   "description": "Asynchronous, non-blocking SQLite3 bindings (forked from @vscode/sqlite3)",
-  "version": "5.1.14",
+  "version": "5.1.15",
   "homepage": "https://github.com/0ldm0s/vscode-node-sqlite3",
   "author": {
     "name": "Mapbox",
