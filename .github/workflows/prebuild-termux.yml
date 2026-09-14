@@ -9,18 +9,18 @@ permissions:
 
 jobs:
   build-termux:
-    # 原生 arm64 runner（公开仓库免费），proot 跑 Termux rootfs 编译
+    # 原生 arm64 runner（公开仓库免费），docker 跑 Termux 官方镜像编译
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
 
       - name: Build inside Termux container
         run: |
-          docker pull ghcr.io/termux/termux-docker:latest
+          docker pull termux/termux-docker:latest
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/usr/src/build" \
             -w /usr/src/build \
-            ghcr.io/termux/termux-docker:latest \
+            termux/termux-docker:latest \
             bash -c '
               set -e
               echo "--- 更新源并安装工具链 ---"
