@@ -14,39 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install proot
+      - name: Build inside Termux container
         run: |
-          sudo apt-get update
-          sudo apt-get install -y proot xz-utils
-
-      - name: Download Termux rootfs (aarch64)
-        run: |
-          URL=$(curl -s https://api.github.com/repos/termux/termux-docker/releases/latest \
-            | jq -r '.assets[] | select(.name | test("aarch64")) | .browser_download_url' | head -1)
-          if [ -z "$URL" ]; then
-            echo "未找到 aarch64 rootfs 资产"
-            exit 1
-          fi
-          echo "Rootfs URL: $URL"
-          curl -L --retry 3 "$URL" -o rootfs.tar.xz
-          mkdir rootfs
-          tar -xJf rootfs.tar.xz -C rootfs
-
-      - name: Build inside Termux (pkg install + npm build)
-        run: |
-          proot -0 \
-            -r "$GITHUB_WORKSPACE/rootfs" \
-            -b /dev -b /proc -b /sys -b /etc/resolv.conf \
-            -b "$GITHUB_WORKSPACE:/usr/src/build" \
+          docker pull ghcr.io/termux/termux-docker:latest
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/build" \
             -w /usr/src/build \
-            "$GITHUB_WORKSPACE/rootfs/data/data/com.termux/files/usr/bin/bash" -c '
+            ghcr.io/termux/termux-docker:latest \
+            bash -c '
               set -e
-              export PATH=/data/data/com.termux/files/usr/bin:$PATH
-              export HOME=/data/data/com.termux/files/home
-              export TMPDIR=$HOME/tmp
-              mkdir -p "$TMPDIR"
-              echo "--- 安装工具链 ---"
-              pkg install -y nodejs clang make python binutils
+              echo "--- 更新源并安装工具链 ---"
+              pkg update -y && pkg install -y nodejs clang make python binutils
               node --version
               npm --version
               echo "--- 安装依赖（跳过脚本）---"
@@ -55,6 +33,7 @@ jobs:
               npx @mapbox/node-pre-gyp configure build
               echo "--- 编译产物 ---"
               ls -la build-tmp-napi-v3/Release/ build-tmp-napi-v6/Release/
+              chown -R 1001:1001 build-tmp-napi-v3 build-tmp-napi-v6
             '
 
       - name: Package (android-unknown-arm64)
