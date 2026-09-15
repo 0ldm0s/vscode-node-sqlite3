@@ -37,12 +37,13 @@ jobs:
               node node_modules/@mapbox/node-pre-gyp/bin/node-pre-gyp configure build
               echo "--- 编译产物 ---"
               ls -la build-tmp-napi-v3/Release/ build-tmp-napi-v6/Release/
-              chown -R 1001:1001 build-tmp-napi-v3 build-tmp-napi-v6
             '
 
       - name: Package (android-unknown-arm64)
         run: |
           set -e
+          # 容器内 uid 映射后产物归 subuid，打包前放开宿主侧读写
+          sudo chmod -R a+rwX build-tmp-napi-v3 build-tmp-napi-v6
           rm -rf pack stage
           mkdir -p pack stage
           for napi in 3 6; do
