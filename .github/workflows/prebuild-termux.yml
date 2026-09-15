@@ -34,7 +34,7 @@ jobs:
               echo "--- 安装依赖（跳过脚本）---"
               npm install --ignore-scripts
               echo "--- 编译 napi v3 + v6 ---"
-              npx @mapbox/node-pre-gyp configure build
+              node node_modules/@mapbox/node-pre-gyp/bin/node-pre-gyp configure build
               echo "--- 编译产物 ---"
               ls -la build-tmp-napi-v3/Release/ build-tmp-napi-v6/Release/
               chown -R 1001:1001 build-tmp-napi-v3 build-tmp-napi-v6
